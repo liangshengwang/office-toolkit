@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>办公文件工具箱 v1.0</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --card: #1c2333;
+    --border: #30363d; --fg: #e6edf3; --fg2: #8b949e;
+    --accent: #58a6ff; --accent2: #1f6feb; --green: #3fb950;
+    --red: #f85149; --yellow: #d2991d; --purple: #a371f7;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+    background: var(--bg); color: var(--fg);
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .app-header {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 16px 24px; display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .app-header h1 { font-size: 20px; font-weight: 600; }
+  .app-header .badge {
+    font-size: 11px; background: var(--accent2); color: #fff;
+    padding: 2px 8px; border-radius: 10px;
+  }
+  .app-header .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+    margin-left: auto;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  /* Tab bar */
+  .tabs {
+    display: flex; gap: 4px; background: var(--bg2);
+    border-radius: var(--radius); padding: 4px; margin-bottom: 20px;
+  }
+  .tab {
+    flex: 1; padding: 10px 16px; text-align: center; border-radius: var(--radius-sm);
+    cursor: pointer; color: var(--fg2); font-size: 14px; font-weight: 500;
+    transition: all .2s; border: none; background: none;
+  }
+  .tab:hover { color: var(--fg); background: rgba(255,255,255,.05); }
+  .tab.active { background: var(--card); color: var(--accent); box-shadow: 0 0 0 1px var(--border); }
+  .tab .icon { font-size: 18px; display: block; margin-bottom: 2px; }
+  .tab .label { font-size: 12px; }
+
+  /* Cards */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 16px; margin-bottom: 12px; color: var(--fg); }
+  .card h2 .sub { color: var(--fg2); font-weight: normal; font-size: 13px; }
+
+  /* Form */
+  input, select, textarea, button {
+    font-family: inherit; font-size: 13px;
+  }
+  .form-group { margin-bottom: 12px; }
+  .form-group label {
+    display: block; font-size: 12px; color: var(--fg2);
+    margin-bottom: 4px; font-weight: 500;
+  }
+  .form-row { display: flex; gap: 12px; }
+  .form-row > * { flex: 1; }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%; padding: 8px 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--fg);
+    outline: none; transition: border-color .2s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  textarea {
+    width: 100%; padding: 10px 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--fg);
+    outline: none; resize: vertical; min-height: 80px;
+    font-size: 13px; line-height: 1.5;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg2); color: var(--fg);
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--border); }
+  .btn-primary { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-green { background: #238636; border-color: #238636; color: #fff; }
+  .btn-green:hover { filter: brightness(1.1); }
+  .btn-danger { background: var(--red); border-color: var(--red); color: #fff; }
+
+  /* Tag grid */
+  .category-grid {
+    display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0;
+  }
+  .cat-tag {
+    padding: 4px 12px; border-radius: 20px;
+    background: var(--bg); border: 1px solid var(--border);
+    font-size: 12px; color: var(--fg2);
+  }
+  .cat-tag .count { color: var(--accent); font-weight: 600; margin-left: 4px; }
+
+  /* File list */
+  .file-list { max-height: 300px; overflow-y: auto; }
+  .file-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .file-item:last-child { border: none; }
+  .file-name { color: var(--fg); }
+  .file-info { color: var(--fg2); font-size: 11px; }
+
+  /* Template Grid */
+  .template-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px; margin-top: 8px;
+  }
+  .template-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px;
+    cursor: pointer; transition: all .15s;
+  }
+  .template-card:hover { border-color: var(--accent); }
+  .template-card h3 { font-size: 14px; color: var(--fg); }
+  .template-card .cat {
+    font-size: 11px; color: var(--accent); margin: 4px 0;
+  }
+  .template-card p { font-size: 12px; color: var(--fg2); line-height: 1.4; }
+
+  /* Result */
+  .result-box {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px; margin: 10px 0;
+    max-height: 400px; overflow: auto; white-space: pre-wrap;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px; line-height: 1.5;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 12px 20px; background: var(--green);
+    color: #fff; border-radius: var(--radius-sm);
+    font-size: 13px; z-index: 999;
+    opacity: 0; transform: translateY(20px);
+    transition: all .3s;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--red); }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 4px; background: var(--border); border-radius: 2px;
+    margin: 10px 0; overflow: hidden;
+  }
+  .progress-bar .fill {
+    height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width .5s;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .form-row { flex-direction: column; }
+    .template-grid { grid-template-columns: 1fr; }
+    .tabs { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>📁 办公文件工具箱</h1>
+  <span class="badge">v1.0</span>
+  <span class="status-dot" id="serverStatus" title="服务运行中"></span>
+</div>
+
+<div class="container">
+  <!-- Tab Navigation -->
+  <div class="tabs" id="tabBar">
+    <button class="tab active" data-tab="filer">
+      <span class="icon">🗂️</span>
+      <span class="label">文件分类</span>
+    </button>
+    <button class="tab" data-tab="templates">
+      <span class="icon">📝</span>
+      <span class="label">办公模板</span>
+    </button>
+    <button class="tab" data-tab="convert">
+      <span class="icon">🔄</span>
+      <span class="label">文件转换</span>
+    </button>
+  </div>
+
+  <!-- Panel 1: File Filer -->
+  <div class="panel active" id="panelFiler">
+    <div class="card">
+      <h2>📂 文件归类整理 <span class="sub">按类型 / 日期 / 关键词</span></h2>
+      <div class="form-group">
+        <label>目标文件夹路径</label>
+        <div class="form-row">
+          <input type="text" id="folderPath" placeholder="例如: C:\Users\xxx\Desktop\杂乱文件夹" value="">
+          <button class="btn btn-primary" onclick="scanFolder()">🔍 扫描归类</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>归类方式</label>
+          <select id="classifyMode">
+            <option value="type">按文件类型</option>
+            <option value="date">按文件日期(月)</option>
+            <option value="keyword">按关键词筛选</option>
+          </select>
+        </div>
+        <div class="form-group" id="keywordGroup" style="display:none">
+          <label>关键词</label>
+          <input type="text" id="keywordInput" placeholder="输入关键词...">
+        </div>
+      </div>
+      <div id="classifyResult"></div>
+      <div id="classifyActions" style="display:none; margin-top:12px">
+        <button class="btn btn-green" onclick="executeClassify()">✅ 执行分类（移动文件）</button>
+        <span style="color:var(--fg2);font-size:12px;margin-left:8px">⚠️ 将文件自动移动到子文件夹</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 2: Templates -->
+  <div class="panel" id="panelTemplates">
+    <div class="card">
+      <h2>📋 办公模板库 <span class="sub">填充变量一键生成</span></h2>
+      <div class="form-group">
+        <label>筛选分类</label>
+        <select id="templateCategoryFilter" onchange="loadTemplates()">
+          <option value="">全部模板</option>
+        </select>
+      </div>
+      <div id="templateGrid" class="template-grid"></div>
+    </div>
+
+    <!-- Template Detail -->
+    <div class="card" id="templateDetail" style="display:none">
+      <h2 id="templateDetailTitle"></h2>
+      <div class="form-group">
+        <label>填充字段 <span style="color:var(--fg2);font-weight:normal">（留空保留占位符）</span></label>
+        <div id="templateVars"></div>
+      </div>
+      <div class="form-row">
+        <button class="btn btn-primary" onclick="generateTemplate()">📄 生成文档</button>
+        <button class="btn" onclick="previewTemplate()">👁️ 预览</button>
+      </div>
+      <div id="templatePreview" class="result-box" style="display:none"></div>
+      <div id="templateDownload" style="display:none;margin-top:8px">
+        <a class="btn btn-green" id="downloadLink" target="_blank">⬇️ 下载文件</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3: Converter -->
+  <div class="panel" id="panelConvert">
+    <div class="card">
+      <h2>🔄 文件格式转换 <span class="sub">上传 → 转换 → 下载</span></h2>
+      <div class="form-group">
+        <label>转换类型</label>
+        <select id="convertType" onchange="updateConvertUI()"></select>
+      </div>
+      <div id="convertParams" style="display:none"></div>
+      <div class="form-group">
+        <label>选择文件</label>
+        <input type="file" id="convertFileInput">
+      </div>
+      <button class="btn btn-primary" onclick="executeConvert()">🔄 开始转换</button>
+      <div class="progress-bar" id="convertProgress" style="display:none">
+        <div class="fill" style="width:0%"></div>
+      </div>
+      <div id="convertResult" style="display:none;margin-top:12px">
+        <div id="convertStatus"></div>
+        <a class="btn btn-green" id="convertDownload" style="display:none;margin-top:8px" target="_blank">⬇️ 下载转换结果</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== STATE ====================
+let templates = [];
+
+// ==================== TAB SWITCHING ====================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.add('active');
+  });
+});
+
+document.getElementById('classifyMode').addEventListener('change', () => {
+  const kw = document.getElementById('keywordGroup');
+  kw.style.display = document.getElementById('classifyMode').value === 'keyword' ? 'block' : 'none';
+});
+
+// ==================== TOAST ====================
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast' + (isError ? ' error' : '');
+  setTimeout(() => el.classList.add('show'), 10);
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ==================== FILE CLASSIFIER ====================
+async function scanFolder() {
+  const dir = document.getElementById('folderPath').value.trim();
+  if (!dir) { toast('请输入文件夹路径', true); return; }
+  const mode = document.getElementById('classifyMode').value;
+  const keyword = document.getElementById('keywordInput').value.trim();
+  const resultDiv = document.getElementById('classifyResult');
+  const actionsDiv = document.getElementById('classifyActions');
+
+  resultDiv.innerHTML = '<div class="progress-bar"><div class="fill" style="width:60%"></div></div><p style="color:var(--fg2)">扫描中...</p>';
+  actionsDiv.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/classify', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({dir, mode, keyword})
+    });
+    const data = await r.json();
+    if (!data.ok) { toast(data.message, true); resultDiv.innerHTML = ''; return; }
+
+    let html = `<div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="color:var(--fg2)">共 ${data.files.length} 个文件</span>
+    </div>`;
+
+    const cats = data.categories || {};
+    const entries = Object.entries(cats);
+
+    if (entries.length === 0) {
+      html += '<p style="color:var(--fg2)">没有匹配的文件</p>';
+    } else {
+      html += '<div class="category-grid">';
+      for (const [cat, info] of entries) {
+        const sizeStr = info.total_size > 1048576 ? (info.total_size/1048576).toFixed(1)+'MB' :
+                        info.total_size > 1024 ? (info.total_size/1024).toFixed(1)+'KB' : info.total_size+'B';
+        html += `<span class="cat-tag">${cat} <span class="count">${info.count}</span> ${sizeStr}</span>`;
+      }
+      html += '</div><div class="file-list">';
+      for (const [cat, info] of entries) {
+        html += `<div style="margin-top:8px"><strong style="font-size:13px;color:var(--accent)">${cat}</strong>`;
+        for (const fname of info.files.slice(0, 20)) {
+          html += `<div class="file-item"><span class="file-name">${escapeHtml(fname)}</span></div>`;
+        }
+        if (info.files.length > 20) html += `<div style="color:var(--fg2);font-size:12px">...还有 ${info.files.length - 20} 个文件</div>`;
+        html += '</div>';
+      }
+      html += '</div>';
+      actionsDiv.style.display = 'block';
+    }
+
+    resultDiv.innerHTML = html;
+  } catch(e) {
+    toast('请求失败: ' + e.message, true);
+    resultDiv.innerHTML = '';
+  }
+}
+
+async function executeClassify() {
+  const dir = document.getElementById('folderPath').value.trim();
+  const mode = document.getElementById('classifyMode').value;
+  if (!confirm('确定要将文件归类移动到子文件夹吗？此操作不可撤回！')) return;
+
+  try {
+    const r = await fetch('/api/classify_execute', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({dir, mode})
+    });
+    const data = await r.json();
+    if (data.ok) {
+      toast(`✅ 成功移动 ${data.moved} 个文件`);
+      scanFolder();
+    } else {
+      toast(data.message, true);
+    }
+  } catch(e) {
+    toast('执行失败: ' + e.message, true);
+  }
+}
+
+// ==================== TEMPLATES ====================
+async function loadTemplates() {
+  const cat = document.getElementById('templateCategoryFilter').value;
+  try {
+    const r = await fetch('/api/templates?category=' + encodeURIComponent(cat));
+    const data = await r.json();
+    if (!data.ok) return;
+    templates = data.templates;
+
+    // Update category filter
+    const sel = document.getElementById('templateCategoryFilter');
+    const curCat = sel.value;
+    sel.innerHTML = '<option value="">全部模板</option>';
+    for (const c of data.categories) {
+      sel.innerHTML += `<option value="${escapeHtml(c)}"${c===curCat?' selected':''}>${escapeHtml(c)}</option>`;
+    }
+
+    const grid = document.getElementById('templateGrid');
+    grid.innerHTML = templates.map(t => `
+      <div class="template-card" onclick="showTemplateDetail('${t.id}')">
+        <h3>📄 ${escapeHtml(t.title)}</h3>
+        <div class="cat">${escapeHtml(t.category)} · ${t.format.toUpperCase()}</div>
+        <p>${escapeHtml(t.desc)}</p>
+      </div>
+    `).join('');
+  } catch(e) {
+    toast('加载模板失败', true);
+  }
+}
+
+async function showTemplateDetail(id) {
+  try {
+    const r = await fetch('/api/templates/' + encodeURIComponent(id));
+    const data = await r.json();
+    if (!data.ok) { toast(data.message, true); return; }
+
+    document.getElementById('templateDetail').style.display = 'block';
+    document.getElementById('templateDetailTitle').innerHTML = `📄 ${escapeHtml(data.title)}`;
+    document.getElementById('templateDownload').style.display = 'none';
+    document.getElementById('templatePreview').style.display = 'none';
+
+    // Extract variables from content
+    const vars = [...data.content.matchAll(/\{(\w+)\}/g)].map(m => m[1]);
+    const uniqueVars = [...new Set(vars)];
+    const varDiv = document.getElementById('templateVars');
+    varDiv.innerHTML = uniqueVars.map(v => `
+      <div class="form-group" style="margin-bottom:6px">
+        <label>${escapeHtml(v)}</label>
+        <input type="text" class="template-var" data-var="${escapeHtml(v)}" placeholder="${escapeHtml(v)}">
+      </div>
+    `).join('');
+    document.getElementById('templateDetail').dataset.id = id;
+  } catch(e) {
+    toast('加载模板详情失败', true);
+  }
+}
+
+async function generateTemplate() {
+  const id = document.getElementById('templateDetail').dataset.id;
+  const variables = {};
+  document.querySelectorAll('.template-var').forEach(el => {
+    const val = el.value.trim();
+    if (val) variables[el.dataset.var] = val;
+  });
+
+  try {
+    const r = await fetch('/api/templates/generate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({id, variables})
+    });
+    const data = await r.json();
+    if (!data.ok) { toast(data.message, true); return; }
+
+    document.getElementById('templatePreview').style.display = 'block';
+    document.getElementById('templatePreview').textContent = data.content;
+    document.getElementById('templateDownload').style.display = 'block';
+    document.getElementById('downloadLink').href = data.download_url;
+    toast('✅ 文档已生成');
+  } catch(e) {
+    toast('生成失败: ' + e.message, true);
+  }
+}
+
+async function previewTemplate() {
+  const id = document.getElementById('templateDetail').dataset.id;
+  const variables = {};
+  document.querySelectorAll('.template-var').forEach(el => {
+    const val = el.value.trim();
+    if (val) variables[el.dataset.var] = val;
+  });
+
+  try {
+    const r = await fetch('/api/templates/generate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({id, variables})
+    });
+    const data = await r.json();
+    if (!data.ok) return;
+    document.getElementById('templatePreview').style.display = 'block';
+    document.getElementById('templatePreview').textContent = data.content;
+  } catch(e) {}
+}
+
+// ==================== CONVERTER ====================
+async function loadConvertCapabilities() {
+  try {
+    const r = await fetch('/api/convert/capabilities');
+    const data = await r.json();
+    if (!data.ok) return;
+    const sel = document.getElementById('convertType');
+    sel.innerHTML = Object.entries(data.capabilities).map(([k, v]) =>
+      `<option value="${k}">${escapeHtml(v.name)} — ${escapeHtml(v.desc)}</option>`
+    ).join('');
+    updateConvertUI();
+  } catch(e) {
+    toast('加载转换能力失败', true);
+  }
+}
+
+function updateConvertUI() {
+  const paramsDiv = document.getElementById('convertParams');
+  const type = document.getElementById('convertType').value;
+  paramsDiv.style.display = 'none';
+  paramsDiv.innerHTML = '';
+
+  if (type === 'compress_image') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `
+      <div class="form-group">
+        <label>压缩质量 (1-100)</label>
+        <input type="number" id="convertQuality" value="70" min="1" max="100">
+      </div>`;
+  } else if (type === 'convert_image_format') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `
+      <div class="form-group">
+        <label>目标格式</label>
+        <select id="convertTargetFormat">
+          <option value="JPEG">JPEG (.jpg)</option>
+          <option value="PNG">PNG</option>
+          <option value="WEBP">WebP</option>
+          <option value="BMP">BMP</option>
+        </select>
+      </div>`;
+  } else if (type === 'resize_image') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `
+      <div class="form-row">
+        <div class="form-group">
+          <label>宽度 (像素, 0=自动)</label>
+          <input type="number" id="resizeW" value="800" min="0">
+        </div>
+        <div class="form-group">
+          <label>高度 (像素, 0=自动)</label>
+          <input type="number" id="resizeH" value="0" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>或者按百分比 (%) <span style="color:var(--fg2);font-weight:normal">填此项时宽高无效</span></label>
+        <input type="number" id="resizePercent" value="0" min="0" max="1000">
+      </div>`;
+  } else if (type === 'crop_image') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `<div style="color:var(--fg2);font-size:12px;margin-bottom:8px">裁剪坐标（像素，从左上角算起）</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>左边距</label>
+          <input type="number" id="cropL" value="0">
+        </div>
+        <div class="form-group">
+          <label>上边距</label>
+          <input type="number" id="cropT" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>右边距</label>
+          <input type="number" id="cropR" value="500">
+        </div>
+        <div class="form-group">
+          <label>下边距</label>
+          <input type="number" id="cropB" value="500">
+        </div>
+      </div>`;
+  } else if (type === 'rotate_image') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `
+      <div class="form-group">
+        <label>旋转角度</label>
+        <select id="rotateAngle">
+          <option value="90">90° 顺时针</option>
+          <option value="180">180°</option>
+          <option value="270">270° 顺时针 (90°逆时针)</option>
+          <option value="-90">90° 逆时针</option>
+          <option value="45">45°</option>
+          <option value="custom">自定义</option>
+        </select>
+      </div>
+      <div class="form-group" id="customAngleGroup" style="display:none">
+        <label>自定义角度</label>
+        <input type="number" id="customAngle" value="30" min="-360" max="360">
+      </div>`;
+    document.getElementById('rotateAngle').addEventListener('change', () => {
+      document.getElementById('customAngleGroup').style.display =
+        document.getElementById('rotateAngle').value === 'custom' ? 'block' : 'none';
+    });
+  } else if (type === 'watermark_image') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `
+      <div class="form-group">
+        <label>水印文字</label>
+        <input type="text" id="wmText" value="机密" placeholder="水印文字内容">
+      </div>
+      <div class="form-group">
+        <label>水印位置</label>
+        <select id="wmPosition">
+          <option value="center">居中</option>
+          <option value="topleft">左上角</option>
+          <option value="topright">右上角</option>
+          <option value="bottomleft">左下角</option>
+          <option value="bottomright">右下角</option>
+        </select>
+      </div>`;
+  } else if (type === 'batch_convert_images') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `
+      <div style="color:var(--fg2);font-size:12px;margin-bottom:8px">上传 ZIP 压缩包批量处理其中所有图片</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>目标宽度 (0=不变)</label>
+          <input type="number" id="batchW" value="0">
+        </div>
+        <div class="form-group">
+          <label>目标高度 (0=不变)</label>
+          <input type="number" id="batchH" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>质量 (1-100)</label>
+          <input type="number" id="batchQ" value="85" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label>转换格式 (留空=不变)</label>
+          <select id="batchFmt">
+            <option value="">保持原格式</option>
+            <option value="JPEG">JPEG (.jpg)</option>
+            <option value="PNG">PNG</option>
+            <option value="WEBP">WebP</option>
+          </select>
+        </div>
+      </div>`;
+  } else if (type === 'txt_encoding_convert') {
+    paramsDiv.style.display = 'block';
+    paramsDiv.innerHTML = `
+      <div class="form-group">
+        <label>目标编码</label>
+        <select id="convertEncoding">
+          <option value="utf-8">UTF-8</option>
+          <option value="gbk">GBK</option>
+          <option value="gb2312">GB2312</option>
+        </select>
+      </div>`;
+  }
+}
+
+async function executeConvert() {
+  const type = document.getElementById('convertType').value;
+  const fileInput = document.getElementById('convertFileInput');
+  if (!fileInput.files.length) { toast('请选择文件', true); return; }
+
+  const progressDiv = document.getElementById('convertProgress');
+  const resultDiv = document.getElementById('convertResult');
+  progressDiv.style.display = 'block';
+  progressDiv.querySelector('.fill').style.width = '30%';
+  resultDiv.style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('type', type);
+
+  const params = {};
+  const quality = document.getElementById('convertQuality');
+  if (quality) params.quality = quality.value;
+  const targetFormat = document.getElementById('convertTargetFormat');
+  if (targetFormat) params.target_format = targetFormat.value;
+  const encoding = document.getElementById('convertEncoding');
+  if (encoding) params.encoding = encoding.value;
+  // 图片尺寸调整
+  const resizeW = document.getElementById('resizeW');
+  if (resizeW) params.width = resizeW.value;
+  const resizeH = document.getElementById('resizeH');
+  if (resizeH) params.height = resizeH.value;
+  const resizeP = document.getElementById('resizePercent');
+  if (resizeP && resizeP.value > 0) params.percent = resizeP.value;
+  // 裁剪
+  const cropL = document.getElementById('cropL');
+  if (cropL) params.left = cropL.value;
+  const cropT = document.getElementById('cropT');
+  if (cropT) params.top = cropT.value;
+  const cropR = document.getElementById('cropR');
+  if (cropR) params.right = cropR.value;
+  const cropB = document.getElementById('cropB');
+  if (cropB) params.bottom = cropB.value;
+  // 旋转
+  const rotateEl = document.getElementById('rotateAngle');
+  if (rotateEl) params.angle = rotateEl.value === 'custom' ? document.getElementById('customAngle').value : rotateEl.value;
+  // 水印
+  const wmText = document.getElementById('wmText');
+  if (wmText) params.text = wmText.value;
+  const wmPos = document.getElementById('wmPosition');
+  if (wmPos) params.position = wmPos.value;
+  // 批量
+  const batchW = document.getElementById('batchW');
+  if (batchW) params.width = batchW.value;
+  const batchH = document.getElementById('batchH');
+  if (batchH) params.height = batchH.value;
+  const batchQ = document.getElementById('batchQ');
+  if (batchQ) params.quality = batchQ.value;
+  const batchFmt = document.getElementById('batchFmt');
+  if (batchFmt) params.target_format = batchFmt.value;
+  formData.append('params', JSON.stringify(params));
+
+  try {
+    const r = await fetch('/api/convert', { method: 'POST', body: formData });
+    progressDiv.querySelector('.fill').style.width = '100%';
+    const data = await r.json();
+    resultDiv.style.display = 'block';
+
+    if (data.ok) {
+      document.getElementById('convertStatus').innerHTML = `✅ 转换成功！大小: ${(data.size/1024).toFixed(1)}KB`;
+      const dl = document.getElementById('convertDownload');
+      dl.href = data.download_url;
+      dl.style.display = 'inline-flex';
+      toast('✅ 转换完成');
+    } else {
+      document.getElementById('convertStatus').innerHTML = `❌ ${data.message}`;
+      document.getElementById('convertDownload').style.display = 'none';
+    }
+  } catch(e) {
+    progressDiv.style.display = 'none';
+    toast('转换失败: ' + e.message, true);
+  }
+}
+
+// ==================== UTILS ====================
+function escapeHtml(s) {
+  if (typeof s !== 'string') return String(s);
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ==================== INIT ====================
+loadTemplates();
+loadConvertCapabilities();
+</script>
+</body>
+</html>
